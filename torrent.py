@@ -1,6 +1,8 @@
-import os
-import shutil
+import os, shutil, libtorrent
 
+from libtorrent import file_storage
+
+from libtorrent import create_torrent
 from storjtorrent import StorjTorrent as storrent
 
 from paper import Paper
@@ -29,7 +31,8 @@ class Torrent:
         """
         print self.paper.authors
         print self.paper.reviewers
-        comment = "Authors: {0} - Reviewers: {1}".format(', '.join([author.name for author in self.paper.authors]),
+        authors = ', '.join([author.name for author in self.paper.authors])
+        comment = "Authors: {0} - Reviewers: {1}".format(authors,
                                                          ', '.join(
                                                              [reviewer.name for reviewer in self.paper.reviewers]))
 
@@ -45,10 +48,16 @@ class Torrent:
         shutil.copyfile(self.file, new_file_path)
 
         # Create the torrent
-        created_torrent = storrent.generate_torrent([],
-                                                    shard_directory=shared_directory,
-                                                    torrent_name=save_path,
-                                                    comment=comment)
+        fs = file_storage
+        libtorrent.add_files(fs, shared_directory)
+        t = create_torrent(fs)
+        t.set_comment(comment)
+        t.set_creator(self.paper.authors)
+        libtorrent.bencode(open(save_path, "w"), t.generate(t))
+        # created_torrent = storrent.generate_torrent([],
+        #                                             shard_directory=shared_directory,
+        #                                             torrent_name=save_path,
+        #                                             comment=comment)
         self.torrent_file = save_path
 
         return Torrent.getMagnet(save_path)
