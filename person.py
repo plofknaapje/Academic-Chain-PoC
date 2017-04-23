@@ -1,9 +1,8 @@
 import hashlib
 from paper import Paper
-
+from torrent import Torrent
 
 class Person:
-
     def __init__(self, name, blockchain):
         """
         Initiates a new Person who can interact with the blockchain.
@@ -31,14 +30,19 @@ class Person:
         """
         file_hash = hashlib.sha256()
         file_hash.update(paper_file)
-        file_hash = file_hash.digest()
+        file_hash = file_hash.hexdigest()
 
-        if len(reviewers)+1 >= 3:
+        if len(reviewers) + 1 >= 3:
             if self.blockchain.citations_ok(citated):
                 if ((paper_type == "disproving" or paper_type == "confirming") and not paper_interaction == "") \
                         or paper_type == "new":
                     new_paper = Paper(paper_name, paper_type, authors, citated, reviewers,
                                       paper_file, file_hash, paper_interaction)
+
+                    torrent = Torrent(paper_file, new_paper)
+                    new_paper.magnet = torrent.initialize()
+                    print "Magnet link: %s" % new_paper.magnet
+                    torrent.seed(torrent.torrent_file)
 
                     for author in authors:
                         author.published_papers.append(paper_name)
@@ -79,13 +83,13 @@ class Person:
         """
         if paper_status == "draft":
             if paper_name in self.published_papers and paper_name in self.blockchain.papers and \
-                             self.blockchain.papers[paper_name].status == paper_status:
+                            self.blockchain.papers[paper_name].status == paper_status:
                 return self.blockchain.papers[paper_name]
             else:
                 return "Draft paper could not be found"
         elif paper_status == "published":
             if paper_name in self.published_papers and paper_name in self.blockchain.papers and \
-                             self.blockchain.papers[paper_name].status == paper_status:
+                            self.blockchain.papers[paper_name].status == paper_status:
                 return self.blockchain.papers[paper_name]
             else:
                 return "Published paper could not be found"
@@ -124,7 +128,7 @@ class Person:
                     self.c_score += self.blockchain.papers[confirming_paper].c_confirming
             else:
                 print "This paper ({0}) has the draft status and will not be counted as a citation.".format(
-                       self.blockchain.papers[paper].name)
+                    self.blockchain.papers[paper].name)
         for paper in self.reviewed_papers:
             self.c_score += self.blockchain.papers[paper].c_reviewers
 
